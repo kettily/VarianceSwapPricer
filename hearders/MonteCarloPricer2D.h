@@ -45,5 +45,13 @@ protected:
 };
 
 
+class MonteCarloVarianceSwapPricer2D : public MonteCarloPricer2D
+{
+public:
+	MonteCarloVarianceSwapPricer2D(const PathSimulator2D& path_simulator, size_t number_of_simulations, double discount_rate);
+	double path_price(const Vector& path) const override;
 
+	~MonteCarloVarianceSwapPricer2D() = default;
+
+};
 #endif

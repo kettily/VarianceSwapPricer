@@ -1,8 +1,8 @@
 #ifndef PATHSIMULATOR2D_H
 #define PATHSIMULATOR2D_H
 
-#ifndef MODEL2D_H
-#include "Model2D.h"
+#ifndef HESTONMODEL_H
+#include "HestonModel.h"
 #endif
 
 #include <vector>
@@ -16,11 +16,11 @@ class PathSimulator2D
 public:
 	PathSimulator2D(Pair initial_factors, 
                     const Vector& time_points, 
-                    const Model2D& model);
+                    const HestonModel& model);
 	// Copy constructor, Assignement operator and Destructor are NEEDED because one of the member variable is a POINTER 
 	PathSimulator2D(const PathSimulator2D& path_simulator);
 	PathSimulator2D& operator=(const PathSimulator2D& path_simulator);
-	~PathSimulator2D();
+	virtual ~PathSimulator2D();
 
 	// We simulate the vector of pairs, then return only the vector of first terms of the pairs  
 	Vector path() const;
@@ -33,19 +33,18 @@ protected:
 
 
 	Pair _initial_factors;					// Each simulated path starts from the same initial value.
-	Vector _time_points;		// time interval which is dicretized in points.
-	const Model2D* _model;
-						 // Model _model; // we cannot instanciate an abstract class ...
-						 // but we can POINT to an object of ABSTRACT type Model.	
-						 // Please note we have a pointer to a "const Model", the pointer itself is not const.
+	Vector _time_points;		// time interval which is discretized in points.
+	const HestonModel _model;
+
 };
 
 
 class SchemaQE: public PathSimulator2D
 {
+public:
 	SchemaQE(Pair initial_factors,
 		const Vector& time_points,
-		const Model2D& model);
+		const HestonModel& model);
 	Pair nextStep(int current_index, Pair current_factors) const override;
 
 	SchemaQE* clone() const override;
@@ -56,10 +55,14 @@ class SchemaQE: public PathSimulator2D
 
 class SchemaTG : public PathSimulator2D
 {
+public:
+	
 	SchemaTG(Pair initial_factors,
 		const Vector& time_points,
-		const Model2D& model);
+		const HestonModel& model);
+
 	Pair nextStep(int current_index, Pair current_factors) const override;
+	static double rootSearch(double psi, double r_0, double eps, int maxIter);
 
 	SchemaTG* clone() const override;
 
