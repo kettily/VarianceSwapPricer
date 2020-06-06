@@ -2,7 +2,7 @@
 #include <iostream>
 
 
-ClosedFormulaPricer::ClosedFormulaPricer(Pair initial_factors, const Vector & time_points, const HestonModel & modeldouble, double discount_rate) : Pricer(discount_rate), _initial_factors(initial_factors), _time_points(time_points), _model(modeldouble)
+ClosedFormulaPricer::ClosedFormulaPricer(Pair initial_factors, const Vector& time_points, const HestonModel& modeldouble, double discount_rate) : Pricer(discount_rate), _initial_factors(initial_factors), _time_points(time_points), _model(modeldouble)
 {
 
 }
@@ -27,31 +27,38 @@ ClosedFormulaPricer::~ClosedFormulaPricer()
 }
 
 double ClosedFormulaPricer::price() const
-{
-	double annualizedVariance = 0.0;
+{	
 	int N = _time_points.size();
+	double annualizedVariance = 0.0;
+	double maturity = _time_points[N - 1];
 	for (int i = 1; i <= N; i++) {
 		dcomp logReturnSquared_ti = function_logReturnSquared_ti(i);
 		double test = logReturnSquared_ti.real();
 		annualizedVariance = annualizedVariance + test;
 	}
 
-	return annualizedVariance;
+	return annualizedVariance/maturity;
 }
 
 dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 {
-
-	double eps = pow(10, -3);
+	double eps0 =0.0;
+	double eps = pow(10, -4);
 	double dt = _time_points[1] - _time_points[0];
 
-	dcomp fd_D = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, 0.0, 1, eps, dt);
-	dcomp sd_D = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, 0.0, 2,  eps,  dt);
-	dcomp fd_C = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, 0.0, 1,  eps,  dt);
-	dcomp sd_C = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, 0.0, 2,  eps,  dt);
+	dcomp fd_D0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 1, eps, dt);
+	dcomp sd_D0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 2, eps, dt);
+	dcomp fd_C0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 1, eps, dt);
+	dcomp sd_C0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 2, eps, dt);
+
+	dcomp fd_D = (zeroDerivative_D(eps0 + eps, dt) - zeroDerivative_D(eps0, dt)) / eps;
+	dcomp sd_D = (zeroDerivative_D(eps0 + eps, dt) - 2.0* zeroDerivative_D(eps0, dt) + zeroDerivative_D(eps0 -eps, dt)) / (eps*eps);
+	dcomp fd_C = (zeroDerivative_C(eps0 + eps, dt) - zeroDerivative_C(eps0, dt)) / eps;
+	dcomp sd_C = (zeroDerivative_C(eps0 + eps, dt) - 2.0 * zeroDerivative_C(eps0, dt) + zeroDerivative_C(eps0 -eps, dt)) / (eps * eps);
 
 
-	double kappa = _model.get_mean_reversion_speed(); 
+
+	double kappa = _model.get_mean_reversion_speed();
 	double sigma = _model.get_vol_of_vol();
 	double theta = _model.get_mean_reversion_level();
 
@@ -59,8 +66,8 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 
 	if (i == 1) {
 
-		return std::pow(fd_D*v_0, 2) 
-			+ (dcomp(2, 0)*fd_C*fd_D - sd_D)*v_0
+		return std::pow(fd_D * v_0, 2)
+			+ (dcomp(2, 0) * fd_C * fd_D - sd_D) * v_0
 			+ std::pow(fd_C, 2)
 			- sd_C;
 	}
@@ -72,8 +79,8 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 
 		double q_tilda = 2 * kappa * theta / std::pow(sigma, 2);
 
-		return std::pow(fd_D, 2)*((q_tilda + 2 * W_i) + std::pow(q_tilda + W_i, 2)) / std::pow(c_i, 2)
-			+ (dcomp(2, 0)*fd_C*fd_D - sd_D)*(q_tilda + W_i) / c_i
+		return std::pow(fd_D, 2) * ((q_tilda + 2 * W_i) + std::pow(q_tilda + W_i, 2)) / std::pow(c_i, 2)
+			+ (dcomp(2, 0) * fd_C * fd_D - sd_D) * (q_tilda + W_i) / c_i
 			+ (std::pow(fd_C, 2) - sd_C);
 	}
 }
@@ -81,8 +88,8 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 dcomp ClosedFormulaPricer::zeroDerivative_D(double w, double dt) const
 {
 	dcomp a = _model.get_mean_reversion_speed()
-		- _model.get_correlation()*_model.get_vol_of_vol()*w*dcomp(0, 1);
-	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2)*(pow(w, 2) + w * dcomp(0, 1));
+		- _model.get_correlation() * _model.get_vol_of_vol() * w * dcomp(0, 1);
+	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2) * (pow(w, 2) + w * dcomp(0, 1));
 	dcomp b = -sqrt(delta);
 	dcomp g = (a + b) / (a - b);
 
@@ -91,7 +98,7 @@ dcomp ClosedFormulaPricer::zeroDerivative_D(double w, double dt) const
 		val = 0.0;
 	}
 	else {
-		val = ((a + b)*(1.0 - exp(b*dt))) / (pow(_model.get_vol_of_vol(), 2)*(1.0 - g * exp(b*dt)));
+		val = ((a + b) * (1.0 - exp(b * dt))) / (pow(_model.get_vol_of_vol(), 2) * (1.0 - g * exp(b * dt)));
 	}
 
 	return val;
@@ -103,18 +110,19 @@ dcomp ClosedFormulaPricer::zeroDerivative_C(double omega, double dt) const
 {
 
 	dcomp a = _model.get_mean_reversion_speed()
-		- _model.get_correlation()*_model.get_vol_of_vol()*omega*dcomp(0, 1);
-	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2)*(pow(omega, 2) + omega * dcomp(0, 1));
+		- _model.get_correlation() * _model.get_vol_of_vol() * omega * dcomp(0, 1);
+	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2) * (pow(omega, 2) + omega * dcomp(0, 1));
 	dcomp b = -sqrt(delta);
 	dcomp g = (a + b) / (a - b);
 
 	dcomp val;
 
 	if (omega == 0.0) {
-		val = 2.0*_model.get_mean_reversion_speed()*_model.get_mean_reversion_level() / pow(_model.get_vol_of_vol(), 2)*(dt - log(dt - exp(b*dt))) - _discount_rate * dt ;
-	}else{
-		val = _discount_rate * (omega*dcomp(0, 1) - 1.0)
-			+ _model.get_mean_reversion_speed()*_model.get_mean_reversion_level()*((a + b)*dt - 2.0*log((1.0 - g * exp(b*dt)) / (1.0 - g))) / pow(_model.get_vol_of_vol(), 2);
+		val = - _discount_rate * dt;
+	}
+	else {
+		val = _discount_rate * (omega * dcomp(0, 1) - 1.0)*dt
+			+ _model.get_mean_reversion_speed() * _model.get_mean_reversion_level() * ((a + b) * dt - 2.0 * log((1.0 - g * exp(b * dt)) / (1.0 - g))) / pow(_model.get_vol_of_vol(), 2);
 	}
 
 
@@ -130,19 +138,20 @@ dcomp ClosedFormulaPricer::derivativeCalculator_0(MagicType func, double omega0,
 
 	if (derivationOrder == 1) {
 		//weights = { -1.0/2.0, 0.0, 1.0/2.0 };
-		weights = { 3.0 / 840.0, -32.0 / 840.0, 168.0 / 840.0, -672.0 / 840.0, 0.0, 672.0 / 840.0, -168.0 / 840.0, 32.0 / 840.0, -3.0 / 840.0 } ;
-	} else {
-	    //weights = { 1.0 , -2.0, 1.0 };
+		weights = { 3.0 / 840.0, -32.0 / 840.0, 168.0 / 840.0, -672.0 / 840.0, 0.0, 672.0 / 840.0, -168.0 / 840.0, 32.0 / 840.0, -3.0 / 840.0 };
+	}
+	else {
+		//weights = { 1.0 , -2.0, 1.0 };
 		weights = { -9,128.0 / 5040.0,-1008.0 / 5040.0,8064.0 / 5040.0,-14350.0 / 5040.0,8064.0 / 5040.0,-1008.0 / 5040.0,128.0 / 5040.0,-9.0 / 5040.0 };
 
 	}
 
 	dcomp val = 0.0;
 	for (int k = 0; k < order; k++) {
-		val += weights[k] *((this->*func)(omega0 + (k - 4)*dw, dt));
+		val += weights[k] * ((this->*func)(omega0 + (k - 4) * dw, dt));
 
 	}
-	
-	return val /pow(dw,derivationOrder);
+
+	return val / pow(dw, derivationOrder);
 
 }
