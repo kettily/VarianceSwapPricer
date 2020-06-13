@@ -27,7 +27,7 @@ ClosedFormulaPricer::~ClosedFormulaPricer()
 }
 
 double ClosedFormulaPricer::price() const
-{	
+{
 	int N = _time_points.size();
 	double annualizedVariance = 0.0;
 	double maturity = _time_points[N - 1];
@@ -37,12 +37,12 @@ double ClosedFormulaPricer::price() const
 		annualizedVariance = annualizedVariance + test;
 	}
 
-	return annualizedVariance/maturity;
+	return annualizedVariance / maturity;
 }
 
 dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 {
-	double eps0 =0.0;
+	double eps0 = 0.0;
 	double eps = pow(10, -4);
 	double dt = _time_points[1] - _time_points[0];
 
@@ -52,9 +52,9 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 	dcomp sd_C0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 2, eps, dt);
 
 	dcomp fd_D = (zeroDerivative_D(eps0 + eps, dt) - zeroDerivative_D(eps0, dt)) / eps;
-	dcomp sd_D = (zeroDerivative_D(eps0 + eps, dt) - 2.0* zeroDerivative_D(eps0, dt) + zeroDerivative_D(eps0 -eps, dt)) / (eps*eps);
+	dcomp sd_D = (zeroDerivative_D(eps0 + eps, dt) - 2.0 * zeroDerivative_D(eps0, dt) + zeroDerivative_D(eps0 - eps, dt)) / (eps * eps);
 	dcomp fd_C = (zeroDerivative_C(eps0 + eps, dt) - zeroDerivative_C(eps0, dt)) / eps;
-	dcomp sd_C = (zeroDerivative_C(eps0 + eps, dt) - 2.0 * zeroDerivative_C(eps0, dt) + zeroDerivative_C(eps0 -eps, dt)) / (eps * eps);
+	dcomp sd_C = (zeroDerivative_C(eps0 + eps, dt) - 2.0 * zeroDerivative_C(eps0, dt) + zeroDerivative_C(eps0 - eps, dt)) / (eps * eps);
 
 
 
@@ -62,7 +62,7 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 	double sigma = _model.get_vol_of_vol();
 	double theta = _model.get_mean_reversion_level();
 
-	double v_0 = 0.2;
+	double v_0 = _initial_factors.second;
 
 	if (i == 1) {
 
@@ -118,10 +118,10 @@ dcomp ClosedFormulaPricer::zeroDerivative_C(double omega, double dt) const
 	dcomp val;
 
 	if (omega == 0.0) {
-		val = - _discount_rate * dt;
+		val = -_discount_rate * dt;
 	}
 	else {
-		val = _discount_rate * (omega * dcomp(0, 1) - 1.0)*dt
+		val = _discount_rate * (omega * dcomp(0, 1) - 1.0) * dt
 			+ _model.get_mean_reversion_speed() * _model.get_mean_reversion_level() * ((a + b) * dt - 2.0 * log((1.0 - g * exp(b * dt)) / (1.0 - g))) / pow(_model.get_vol_of_vol(), 2);
 	}
 

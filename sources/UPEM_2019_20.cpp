@@ -57,15 +57,15 @@ SchemaQE create_pathsimulator_heston_QE(Vector time_points, Pair initial_factors
 
 
 void testing_MC_pricer_2D(Vector time_points,
-						  size_t number_of_simulations,
-						  double discount_rate, 
-						  Pair initial_factors, 
-						  HestonModel model_Heston)
+	size_t number_of_simulations,
+	double discount_rate,
+	Pair initial_factors,
+	HestonModel model_Heston)
 {
 
 	///////////////////////// Heston ///////////////////////////
-	SchemaTG path_simulator_Heston_TG = create_pathsimulator_heston_TG(time_points, initial_factors,  model_Heston);
-	SchemaQE path_simulator_Heston_QE = create_pathsimulator_heston_QE( time_points, initial_factors,  model_Heston);
+	SchemaTG path_simulator_Heston_TG = create_pathsimulator_heston_TG(time_points, initial_factors, model_Heston);
+	SchemaQE path_simulator_Heston_QE = create_pathsimulator_heston_QE(time_points, initial_factors, model_Heston);
 
 	MonteCarloVarianceSwapPricer2D* pricer_Heston_var_TG = new MonteCarloVarianceSwapPricer2D(path_simulator_Heston_TG, number_of_simulations, discount_rate);
 	MonteCarloVarianceSwapPricer2D* pricer_Heston_var_QE = new MonteCarloVarianceSwapPricer2D(path_simulator_Heston_QE, number_of_simulations, discount_rate);
@@ -77,7 +77,7 @@ void testing_MC_pricer_2D(Vector time_points,
 		double pv_vol_QE = pricer_Heston_var_QE->price();
 		std::cout << "Var swap price with Heston model TG for test number " << test_index << " is " << pv_vol_TG << "\n";
 		std::cout << "Var swap price with Heston model QE for test number " << test_index << " is " << pv_vol_QE << "\n";
-		std::cout<<""<<"\n";
+		std::cout << "" << "\n";
 	}
 
 	std::cout << "\n";
@@ -85,14 +85,14 @@ void testing_MC_pricer_2D(Vector time_points,
 
 
 void testing_CF_pricer(Vector time_points,
-					   double discount_rate, 
-					   Pair initial_factors, 
-					   HestonModel model_Heston)
+	double discount_rate,
+	Pair initial_factors,
+	HestonModel model_Heston)
 {
-	ClosedFormulaPricer* pricer_Heston_var = new ClosedFormulaPricer( initial_factors,
-																	  time_points,
-																	  model_Heston,
-																	  discount_rate);
+	ClosedFormulaPricer* pricer_Heston_var = new ClosedFormulaPricer(initial_factors,
+		time_points,
+		model_Heston,
+		discount_rate);
 	// Testing convergence ...
 	size_t number_of_tests = 10;
 	for (int test_index = 0; test_index < number_of_tests; ++test_index)
@@ -108,37 +108,37 @@ void testing_CF_pricer(Vector time_points,
 int main()
 {
 
-	size_t number_time_points = 50;
-	double maturity = 2.;
+	size_t number_time_points = 1000;
+	double maturity = 2.0; //1.0
 
 	// Defines the discretization of time space
 	Vector time_points = create_discretization_time_points(number_time_points, maturity);
 
-	size_t number_of_simulations = 20000;
-	double discount_rate = 0.03;
+	size_t number_of_simulations = 20000; //5k
+	double discount_rate = 0.0; //0.03;
 
 
 	// Defines initial value of asset
-	Pair initial_factors(100., 0.2); // (A0, B0) initial factors
+	Pair initial_factors(100., 0.04); // (A0, B0) initial factors
 
-	double drift = 0.06;
-	double mean_reversion_speed = 3.0;
-	double mean_reversion_level = 0.20;
-	double vol_of_vol = 0.2;
-	double correlation = -0.5;
+	double drift = 0.0;//0.06;
+	double mean_reversion_speed = 0.5;
+	double mean_reversion_level = 0.04;
+	double vol_of_vol = 1.0;
+	double correlation = 0.5;
 
 	HestonModel model_Heston(correlation, drift, mean_reversion_speed, mean_reversion_level, vol_of_vol);
 
-	/*
+	
 	testing_MC_pricer_2D(time_points,
 						 number_of_simulations,
-		                 discount_rate, initial_factors, model_Heston);
-	*/
+						 discount_rate, initial_factors, model_Heston);
+	
 
 	testing_CF_pricer(time_points,
-					  discount_rate,
-					  initial_factors,
-					  model_Heston);
+		discount_rate,
+		initial_factors,
+		model_Heston);
 
 	// Homework !
 
