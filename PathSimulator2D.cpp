@@ -38,19 +38,19 @@ PathSimulator2D::~PathSimulator2D() {
 
 Vector* PathSimulator2D::path() const
 {
-    
-    int size = _time_points.size();	    
+
+    int size = _time_points.size();
     Vector* path = new Vector(size);
-    path->at(0) =  _initial_factors.first ;
-    
-    
- 
+    path->at(0) = _initial_factors.first;
+
+
+
     Pair nextStep_i = _initial_factors;
 
     for (size_t index = 0; index < size - 1; ++index)
     {
         nextStep_i = nextStep(index, nextStep_i);
-        path->at(index+1) = nextStep_i.first;
+        path->at(index + 1) = nextStep_i.first;
 
     }
 
@@ -121,6 +121,11 @@ Pair SchemaQE::nextStep(int current_index, Pair current_factors) const
         double beta = 2 / (m * (psi + 1));
         double p = (psi - 1) / (psi + 1);
         double u = RandomNormalGenerator::uniformRandom();
+        // On some system, u might become equal to 1.0 because of some rounding made by some system, but , so we want to prevent this by replacing 1 by 0.999
+        if (u ==1.0) {
+            u -= pow(10, -8);
+        }
+
 
         nextStep.second = cdf_inv(u, p, beta);
         double variance = time_gap * (0.5 * current_factors.second + 0.5 * nextStep.second);

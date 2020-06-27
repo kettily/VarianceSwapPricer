@@ -7,18 +7,11 @@ ClosedFormulaPricer::ClosedFormulaPricer(Pair initial_factors, const Vector& tim
 
 }
 
-/*
-ClosedFormulaPricer::ClosedFormulaPricer(const ClosedFormulaPricer& pricer) : Pricer(pricer)
-{
-}
-*/
 
 ClosedFormulaPricer& ClosedFormulaPricer::operator=(const ClosedFormulaPricer& pricer)
 {
 	_discount_rate = pricer._discount_rate;
 
-
-	// TODO: insérer une instruction return ici
 	return *this;
 }
 
@@ -28,6 +21,7 @@ ClosedFormulaPricer::~ClosedFormulaPricer()
 
 double ClosedFormulaPricer::price() const
 {
+	//Method to return the price of the contract with close formula
 	int N = _time_points.size();
 	double annualizedVariance = 0.0;
 	double maturity = _time_points[N - 1];
@@ -42,20 +36,15 @@ double ClosedFormulaPricer::price() const
 
 dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 {
+	// Function to calculate log return squared with combinaison of first and second derivatives of C and D
 	double eps0 = 0.0;
 	double eps = pow(10, -4);
 	double dt = _time_points[1] - _time_points[0];
 
-	dcomp fd_D0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 1, eps, dt);
-	dcomp sd_D0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 2, eps, dt);
-	dcomp fd_C0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 1, eps, dt);
-	dcomp sd_C0 = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 2, eps, dt);
-
-	dcomp fd_D = (zeroDerivative_D(eps0 + eps, dt) - zeroDerivative_D(eps0, dt)) / eps;
-	dcomp sd_D = (zeroDerivative_D(eps0 + eps, dt) - 2.0 * zeroDerivative_D(eps0, dt) + zeroDerivative_D(eps0 - eps, dt)) / (eps * eps);
-	dcomp fd_C = (zeroDerivative_C(eps0 + eps, dt) - zeroDerivative_C(eps0, dt)) / eps;
-	dcomp sd_C = (zeroDerivative_C(eps0 + eps, dt) - 2.0 * zeroDerivative_C(eps0, dt) + zeroDerivative_C(eps0 - eps, dt)) / (eps * eps);
-
+	dcomp fd_D = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 1, eps, dt);
+	dcomp sd_D = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_D, eps0, 2, eps, dt);
+	dcomp fd_C = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 1, eps, dt);
+	dcomp sd_C = derivativeCalculator_0(&ClosedFormulaPricer::zeroDerivative_C, eps0, 2, eps, dt);
 
 
 	double kappa = _model.get_mean_reversion_speed();
@@ -87,19 +76,13 @@ dcomp ClosedFormulaPricer::function_logReturnSquared_ti(int i) const
 
 dcomp ClosedFormulaPricer::zeroDerivative_D(double w, double dt) const
 {
+	// Function to calculate D(w, dt) modified to be continuous in zero
 	dcomp a = _model.get_mean_reversion_speed()
 		- _model.get_correlation() * _model.get_vol_of_vol() * w * dcomp(0, 1);
 	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2) * (pow(w, 2) + w * dcomp(0, 1));
-	dcomp b = -sqrt(delta);
-	dcomp g = (a + b) / (a - b);
-
-	dcomp val;
-	if (w == 0.0) {
-		val = 0.0;
-	}
-	else {
-		val = ((a + b) * (1.0 - exp(b * dt))) / (pow(_model.get_vol_of_vol(), 2) * (1.0 - g * exp(b * dt)));
-	}
+	dcomp b = sqrt(delta); // was -sqrt
+	dcomp g = (a - b) / (a + b);
+	dcomp val = (a - b) * (1.0 - exp(-b * dt)) / (pow(_model.get_vol_of_vol(), 2) * (1.0 - g * exp(-b * dt))) ;
 
 	return val;
 }
@@ -108,24 +91,15 @@ dcomp ClosedFormulaPricer::zeroDerivative_D(double w, double dt) const
 
 dcomp ClosedFormulaPricer::zeroDerivative_C(double omega, double dt) const
 {
-
+	// Function to calculate D(w, dt) modified to be continuous in zero
 	dcomp a = _model.get_mean_reversion_speed()
 		- _model.get_correlation() * _model.get_vol_of_vol() * omega * dcomp(0, 1);
 	dcomp delta = pow(a, 2) + pow(_model.get_vol_of_vol(), 2) * (pow(omega, 2) + omega * dcomp(0, 1));
-	dcomp b = -sqrt(delta);
-	dcomp g = (a + b) / (a - b);
-
-	dcomp val;
-
-	if (omega == 0.0) {
-		val = -_discount_rate * dt;
-	}
-	else {
-		val = _discount_rate * (omega * dcomp(0, 1) - 1.0) * dt
-			+ _model.get_mean_reversion_speed() * _model.get_mean_reversion_level() * ((a + b) * dt - 2.0 * log((1.0 - g * exp(b * dt)) / (1.0 - g))) / pow(_model.get_vol_of_vol(), 2);
-	}
-
-
+	dcomp b = sqrt(delta); // was -sqrt
+	dcomp g = (a - b) / (a + b); // was (a + b) / (a - b)
+	dcomp val = (_model.get_drift() * omega * dcomp(0, 1) - _discount_rate) * dt 
+		+ _model.get_mean_reversion_speed() * _model.get_mean_reversion_level() * ((a - b) * dt - 2.0 * log((1.0 - g * exp(-b * dt)) / (1.0 - g))) / pow(_model.get_vol_of_vol(), 2);
+	
 	return val;
 }
 
@@ -133,23 +107,19 @@ dcomp ClosedFormulaPricer::zeroDerivative_C(double omega, double dt) const
 
 dcomp ClosedFormulaPricer::derivativeCalculator_0(MagicType func, double omega0, int derivationOrder, double dw, double dt) const
 {
-	int order = 9;
-	Vector weights(order);
+	// Implementation of numerical derivation based on Finite differences for order 1 and 2
+	Vector weights(3);
 
 	if (derivationOrder == 1) {
-		//weights = { -1.0/2.0, 0.0, 1.0/2.0 };
-		weights = { 3.0 / 840.0, -32.0 / 840.0, 168.0 / 840.0, -672.0 / 840.0, 0.0, 672.0 / 840.0, -168.0 / 840.0, 32.0 / 840.0, -3.0 / 840.0 };
+		weights = { 0.0, -1.0, 1.0 };
 	}
 	else {
-		//weights = { 1.0 , -2.0, 1.0 };
-		weights = { -9,128.0 / 5040.0,-1008.0 / 5040.0,8064.0 / 5040.0,-14350.0 / 5040.0,8064.0 / 5040.0,-1008.0 / 5040.0,128.0 / 5040.0,-9.0 / 5040.0 };
-
+		weights = { 1.0 , -2.0, 1.0 };
 	}
 
 	dcomp val = 0.0;
-	for (int k = 0; k < order; k++) {
-		val += weights[k] * ((this->*func)(omega0 + (k - 4) * dw, dt));
-
+	for (int k = 0; k < 3; k++) {
+		val += weights[k] * ((this->*func)(omega0 + (k - 1) * dw, dt));
 	}
 
 	return val / pow(dw, derivationOrder);
