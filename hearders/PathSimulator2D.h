@@ -23,7 +23,7 @@ public:
 	virtual ~PathSimulator2D();
 
 	// We simulate the vector of pairs, then return only the vector of first terms of the pairs  
-	Vector path() const;
+	Vector* path() const;
 	Vector getTimePoints() const;
 	virtual PathSimulator2D*  clone() const= 0;
 

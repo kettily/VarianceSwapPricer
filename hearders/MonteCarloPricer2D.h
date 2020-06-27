@@ -21,7 +21,7 @@ public:
 
 	virtual ~MonteCarloPricer2D(); // we need to have a virtual destructor : WHY? [interview question]
 
-	virtual double path_price(const Vector& path) const = 0; // pure virtual method: needs to be implemented by all subclasses.
+	virtual double path_price(Vector* path) const = 0; // pure virtual method: needs to be implemented by all subclasses.
 	double price() const override;												 // method that all subclasses will inherit.
 
 
@@ -30,26 +30,13 @@ protected:
 	size_t _number_of_simulations;
 };
 
-// abstract as well
-class MonteCarloOptionPricer2D : public MonteCarloPricer2D
-{
-public:
-	MonteCarloOptionPricer2D(const PathSimulator2D& path_simulator, size_t number_of_simulations, double discount_rate, double strike, bool is_call);
-	double path_price(const Vector& path) const override;
-
-	~MonteCarloOptionPricer2D() = default;
-
-protected:
-	double _strike;
-	bool _is_call;
-};
 
 
 class MonteCarloVarianceSwapPricer2D : public MonteCarloPricer2D
 {
 public:
 	MonteCarloVarianceSwapPricer2D(const PathSimulator2D& path_simulator, size_t number_of_simulations, double discount_rate);
-	double path_price(const Vector& path) const override;
+	double path_price(Vector* path) const override;
 
 	~MonteCarloVarianceSwapPricer2D() = default;
 
