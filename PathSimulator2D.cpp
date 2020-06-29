@@ -116,11 +116,7 @@ Pair SchemaQE::nextStep(int current_index, Pair current_factors) const
         double beta = 2 / (m * (psi + 1));
         double p = (psi - 1) / (psi + 1);
         double u = RandomNormalGenerator::uniformRandom();
-        // On some system, u might become equal to 1.0 because of some rounding made by some system, but , so we want to prevent this by replacing 1 by 0.999
-        if (u ==1.0) {
-            u -= pow(10, -8);
-        }
-
+ 
 
         nextStep.second = cdf_inv(u, p, beta);
         double variance = time_gap * (0.5 * current_factors.second + 0.5 * nextStep.second);
@@ -166,13 +162,13 @@ double SchemaTG::rootSearch(double psi, double r_0, double eps, int maxIter) {
     r_1 = r_0;
     do {
         numIter++;
-		r_1_square = r_1*r_1;
-		double phi_r = (1 / sqrt(2 * M_PI)) * exp(-r_1_square / 2);
-		double Phi_r = 0.5 * erfc(-r_1 * M_SQRT1_2);
-		// Calcul de g_psi
-		g_psi = r_1 * phi_r + Phi_r * (1 + r_1_square) - (1 + psi) * pow(phi_r + r_1 * Phi_r, 2);
-		// Calcul de g_psi_d
-		g_psi_d = 2 * phi_r + 2 * r_1 * Phi_r - 2 * (1 + psi) * Phi_r * (phi_r + r_1 * Phi_r);
+        r_1_square = r_1 * r_1;
+        double phi_r = (1 / sqrt(2 * M_PI)) * exp(-r_1_square / 2);
+        double Phi_r = 0.5 * erfc(-r_1 * M_SQRT1_2);
+        // Calcul de g_psi
+        g_psi = r_1 * phi_r + Phi_r * (1 + r_1_square) - (1 + psi) * pow(phi_r + r_1 * Phi_r, 2);
+        // Calcul de g_psi_d
+        g_psi_d = 2 * phi_r + 2 * r_1 * Phi_r - 2 * (1 + psi) * Phi_r * (phi_r + r_1 * Phi_r);
         r_2 = r_1 - g_psi / g_psi_d;
         r_1 = r_2;
 
@@ -212,7 +208,7 @@ Pair SchemaTG::nextStep(int current_index, Pair current_factors) const
     // root search
     double r_0 = 10.0; // find the best r_0, eps, maxIter !!!
     double eps = 10e-15;
-	int maxIter = 100;//(int)pow(10, 2);
+    int maxIter = 100;//(int)pow(10, 2);
     double r_psi = SchemaTG::rootSearch(psi, r_0, eps, maxIter);
     //std::cout<<"r_psi"<<r_psi<<endl;
 
